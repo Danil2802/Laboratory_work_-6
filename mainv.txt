@@ -1,0 +1,201 @@
+import java.util.Arrays;
+
+public class GaussSeidel {
+
+    private static final int MAX_ITER = 1000;
+    private static final double EPSILON = 1e-3;
+
+    public static void printMatrix(double[][] a, double[] b) {
+        int n = a.length;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                System.out.printf("%10.3f ", a[i][j]);
+            }
+            System.out.printf("| %10.3f\n", b[i]);
+        }
+        System.out.println();
+    }
+
+    public static void printCanonicalForm(double[][] a, double[] b) {
+        int n = a.length;
+        System.out.println("\nКаноническая форма системы уравнений:");
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                System.out.printf("%10.3f ", a[i][j]);
+            }
+            System.out.printf("| %10.3f\n", b[i]);
+        }
+        System.out.println();
+    }
+
+    public static void printEquationForm(double[][] a, double[] b) {
+        int n = a.length;
+        System.out.println("Форма уравнений системы:");
+        for (int i = 0; i < n; i++) {
+            System.out.printf("   x%d = (", i + 1);
+            boolean firstTerm = true;
+            for (int j = 0; j < n; j++) {
+                if (i != j) {
+                    if (!firstTerm) {
+                        System.out.print(" ");
+                    } else {
+                        firstTerm = false;
+                    }
+                    double coeff = -a[i][j];
+                    if (coeff >= 0) {
+                        System.out.printf("+%5.2f * x%d", coeff, j + 1);
+                    } else {
+                        System.out.printf("-%5.2f * x%d", Math.abs(coeff), j + 1);
+                    }
+                }
+            }
+            System.out.printf(" + %5.2f) / %5.2f\n", b[i], a[i][i]);
+        }
+        System.out.println();
+    }
+
+    public static void gaussElimination(double[][] a, double[] b, double[] x) {
+        int n = a.length;
+        int operations = 0;
+        System.out.println("Решение прямым методом (методом Гаусса):");
+        System.out.println("Прямой ход метода Гаусса:");
+        for (int i = 0; i < n; i++) {
+            int maxRow = i;
+            for (int k = i + 1; k < n; k++) {
+                if (Math.abs(a[k][i]) > Math.abs(a[maxRow][i])) {
+                    maxRow = k;
+                }
+            }
+
+            double[] temp = a[maxRow];
+            a[maxRow] = a[i];
+            a[i] = temp;
+
+            double tmp = b[maxRow];
+            b[maxRow] = b[i];
+            b[i] = tmp;
+
+            for (int k = i + 1; k < n; k++) {
+                double factor = a[k][i] / a[i][i];
+                for (int j = i; j < n; j++) {
+                    a[k][j] -= factor * a[i][j];
+                    operations++;
+                }
+                b[k] -= factor * b[i];
+                operations++;
+            }
+            printMatrix(a, b);
+        }
+
+        System.out.println("Обратный ход метода Гаусса:");
+        for (int i = n - 1; i >= 0; i--) {
+            x[i] = b[i];
+            for (int j = i + 1; j < n; j++) {
+                x[i] -= a[i][j] * x[j];
+                operations++;
+            }
+            x[i] /= a[i][i];
+            operations++;
+            printMatrix(a, b);
+        }
+        printSolutionGauss(x, operations);
+    }
+
+    public static void printSolutionGauss(double[] x, int operations) {
+        System.out.println("Ответы методом Гаусса:");
+        System.out.printf("%5s", "N");
+        for (int i = 0; i < x.length; i++) {
+            System.out.printf("%9s", "x" + (i + 1));
+        }
+        System.out.printf("%10s\n", "en");
+
+        System.out.printf("%5d", operations);
+        for (int i = 0; i < x.length; i++) {
+            System.out.printf("%10.3f", x[i]);
+        }
+        System.out.printf("%10.3f\n", 0.0); // For Gauss elimination, assuming zero final error
+    }
+
+    public static boolean checkDiagonalDominance(double[][] a) {
+        int n = a.length;
+        for (int i = 0; i < n; i++) {
+            double diagonal = Math.abs(a[i][i]);
+            double sum = 0;
+            for (int j = 0; j < n; j++) {
+                if (i != j) {
+                    sum += Math.abs(a[i][j]);
+                }
+            }
+            if (diagonal <= sum) {
+                System.out.printf("\nСтрока %d не удовлетворяет условию строгого диагонального доминирования.\n", i + 1);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static void gaussSeidel(double[][] a, double[] b, double[] x) {
+        int n = a.length;
+        double[] x_old = new double[n];
+        double error;
+        int iterations = 0;
+
+        System.out.println("\nРешение методом Гаусса-Зейделя:");
+        System.out.printf("%5s", "N");
+        for (int i = 0; i < n; i++) {
+            System.out.printf("%9s", "x" + (i + 1));
+        }
+        System.out.printf("%10s\n", "en");
+
+        do {
+            error = 0;
+            for (int i = 0; i < n; i++) {
+                double sum = b[i];
+                for (int j = 0; j < n; j++) {
+                    if (i != j) {
+                        sum -= a[i][j] * x[j];
+                    }
+                }
+                x_old[i] = x[i];
+                x[i] = sum / a[i][i];
+
+                error = Math.max(error, Math.abs(x[i] - x_old[i]));
+            }
+            iterations++;
+
+            System.out.printf("%5d", iterations);
+            for (int i = 0; i < n; i++) {
+                System.out.printf("%10.3f", x[i]);
+            }
+            System.out.printf("%10.3f\n", error);
+        } while (error > EPSILON && iterations < MAX_ITER);
+    }
+
+    public static void main(String[] args) {
+        double[][] a = {
+            {0.89, -0.04, 0.21, -0.18},
+            {0.25, -1.23, 0.12, -0.09},
+            {-0.21, 0.12, 0.8, -0.13},
+            {0.15, -1.31, 0.06, -1.55}
+        };
+
+        double[] b = {-1.24, -1.15, 2.56, 0.89};
+
+        double[][] originalA = Arrays.stream(a).map(double[]::clone).toArray(double[][]::new);
+        double[] originalB = b.clone();
+
+        double[] x = new double[a.length];
+        gaussElimination(a, b, x);
+
+        if (!checkDiagonalDominance(originalA)) {
+            System.out.println("Матрица не является строго диагонально доминирующей. Решение методом Гаусса-Зейделя невозможно.");
+            return;
+        }
+
+        printCanonicalForm(originalA, originalB);
+        printEquationForm(originalA, originalB);
+
+        double[] x_seidel = new double[a.length];
+        gaussSeidel(originalA, originalB, x_seidel);
+    }
+}
