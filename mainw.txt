@@ -1,0 +1,128 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.Scanner;
+
+public class MatrixOperations {
+
+    // Function to generate random double numbers in the range [-50, 50]
+    private static double randomDouble(double min, double max, Random rand) {
+        return min + (max - min) * rand.nextDouble();
+    }
+
+    // Function to print a matrix with better formatting
+    private static void printMatrix(List<List<Double>> matrix) {
+        for (List<Double> row : matrix) {
+            for (Double elem : row) {
+                System.out.printf("%8.4f ", elem);
+            }
+            System.out.println();
+        }
+    }
+
+    // Function to reverse the rows of a matrix
+    private static void reverseRows(List<List<Double>> matrix) {
+        int M = matrix.size();
+        for (int i = 0; i < M / 2; i++) {
+            List<Double> temp = matrix.get(i);
+            matrix.set(i, matrix.get(M - 1 - i));
+            matrix.set(M - 1 - i, temp);
+        }
+    }
+
+    // Function to find the second minimum and maximum elements in a matrix
+    private static void findSecondMinMax(List<List<Double>> matrix, double[] result) {
+        double minVal = Double.MAX_VALUE;
+        double maxVal = -Double.MAX_VALUE;
+        double secondMin = Double.MAX_VALUE;
+        double secondMax = -Double.MAX_VALUE;
+
+        for (List<Double> row : matrix) {
+            for (Double elem : row) {
+                if (elem < minVal) {
+                    secondMin = minVal;
+                    minVal = elem;
+                } else if (elem > minVal && elem < secondMin) {
+                    secondMin = elem;
+                }
+
+                if (elem > maxVal) {
+                    secondMax = maxVal;
+                    maxVal = elem;
+                } else if (elem < maxVal && elem > secondMax) {
+                    secondMax = elem;
+                }
+            }
+        }
+        result[0] = secondMin;
+        result[1] = secondMax;
+    }
+
+    private static boolean isNumber(String str) {
+        return str.chars().allMatch(Character::isDigit);
+    }
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        Random rand = new Random();
+        int M = 0, N = 0;
+        boolean validInput = false;
+
+        while (!validInput) {
+            System.out.print("Введите размеры матрицы M и N: ");
+            String input = scanner.nextLine();
+            String[] tokens = input.split("\\s+");
+
+            if (tokens.length != 2) {
+                System.out.println("Некорректное количество слов. Пожалуйста, введите два целых числа.");
+                continue;
+            }
+
+            if (!isNumber(tokens[0]) || !isNumber(tokens[1])) {
+                System.out.println("Пожалуйста, введите два целых числа.");
+                continue;
+            }
+
+            M = Integer.parseInt(tokens[0]);
+            N = Integer.parseInt(tokens[1]);
+
+            if (M < 1 || M > 50 || N < 1 || N > 50) {
+                System.out.println("Недопустимые условия. Пожалуйста, введите числа в диапазоне [1, 50].");
+                continue;
+            }
+
+            if (M == 1 && N == 1) {
+                System.out.println("Некорректные числа. Пожалуйста, введите числа, не равные оба 1.");
+                continue;
+            }
+            validInput = true;
+        }
+
+        List<List<Double>> matrix = new ArrayList<>();
+        for (int i = 0; i < M; i++) {
+            List<Double> row = new ArrayList<>();
+            for (int j = 0; j < N; j++) {
+                row.add(randomDouble(-50, 50, rand));
+            }
+            matrix.add(row);
+        }
+
+        System.out.println("Исходная матрица:");
+        printMatrix(matrix);
+
+        // Reverse the rows of the matrix
+        reverseRows(matrix);
+
+        System.out.println("Матрица после перезаписи строк в обратном порядке:");
+        printMatrix(matrix);
+
+        // Find the second minimum and maximum elements
+        double[] secondMinMax = new double[2];
+        findSecondMinMax(matrix, secondMinMax);
+
+        System.out.printf("Второй минимальный элемент: %.4f%n", secondMinMax[0]);
+        System.out.printf("Второй максимальный элемент: %.4f%n", secondMinMax[1]);
+
+        scanner.close();
+    }
+}
