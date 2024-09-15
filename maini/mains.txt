@@ -1,0 +1,84 @@
+import java.util.Arrays;
+import java.util.Random;
+
+public class GameOfLife {
+    // Размеры поля
+    private static final int ROWS = 25;
+    private static final int COLS = 40;
+    private static final int DELAY = 250; // Задержка в миллисекундах
+    private static final double LIVE_CELL_PROBABILITY = 0.6; // Вероятность, что клетка будет живой 
+
+    // Функция для очистки экрана консоли
+    private static void clearScreen() {
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
+    }
+
+    // Функция для вывода состояния поля на консоль
+    private static void printGrid(boolean[][] grid) {
+        clearScreen();
+        for (int i = 0; i < ROWS; ++i) {
+            for (int j = 0; j < COLS; ++j) {
+                if (grid[i][j]) {
+                    System.out.print("0"); // Живая клетка
+                } else {
+                    System.out.print(" "); // Мёртвая клетка
+                }
+            }
+            System.out.println();
+        }
+    }
+
+    // Подсчет живых соседей клетки
+    private static int countNeighbors(boolean[][] grid, int x, int y) {
+        int count = 0;
+        for (int i = -1; i <= 1; ++i) {
+            for (int j = -1; j <= 1; ++j) {
+                if (i == 0 && j == 0) continue;
+                int ni = x + i;
+                int nj = y + j;
+                if (ni >= 0 && ni < ROWS && nj >= 0 && nj < COLS) {
+                    count += grid[ni][nj] ? 1 : 0;
+                }
+            }
+        }
+        return count;
+    }
+
+    // Применение классических правил клеточного автомата
+    private static void applyRules(boolean[][] grid, boolean[][] newGrid) {
+        for (int i = 0; i < ROWS; ++i) {
+            for (int j = 0; j < COLS; ++j) {
+                int neighbors = countNeighbors(grid, i, j);
+                if (grid[i][j]) { // Живая клетка
+                    newGrid[i][j] = neighbors == 2 || neighbors == 3;
+                } else { // Мёртвая клетка
+                    newGrid[i][j] = neighbors == 3;
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        Random random = new Random();
+        boolean[][] grid = new boolean[ROWS][COLS];
+        boolean[][] newGrid = new boolean[ROWS][COLS];
+
+        // Инициализация случайных живых клеток с заданной вероятностью
+        for (int i = 0; i < ROWS; ++i) {
+            for (int j = 0; j < COLS; ++j) {
+                grid[i][j] = random.nextDouble() < LIVE_CELL_PROBABILITY;
+            }
+        }
+
+        // Демонстрация работы клеточного автомата
+        for (int generation = 0; generation < 500; ++generation) {
+            printGrid(grid);
+            applyRules(grid, newGrid);
+            boolean[][] temp = grid;
+            grid = newGrid;
+            newGrid = temp;
+            Thread.sleep(DELAY);
+        }
+    }
+}
