@@ -1,0 +1,98 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class MatrixGenerator {
+
+    public static void printMatrix(List<List<Integer>> matrix) {
+        for (List<Integer> row : matrix) {
+            for (Integer elem : row) {
+                System.out.print(elem + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    public static List<List<Integer>> generateMatrix(int N) {
+        List<List<Integer>> matrix = new ArrayList<>();
+        int startValue = 100;
+        int step = 5;
+        int s = 0;
+
+        // Верхняя часть матрицы
+        for (int i = 0; i < N / 2; i++) {
+            List<Integer> row = new ArrayList<>();
+            int currentValue = startValue + s * step;
+            for (int j = 0; j <= i; j++) {
+                row.add(currentValue);
+                currentValue += step;
+            }
+            s = s + i + 1;
+            matrix.add(row);
+        }
+
+        // Центральная строка для нечетных N
+        if (N % 2 != 0) {
+            List<Integer> row = new ArrayList<>();
+            int currentValue = startValue + s * step;
+            for (int j = 0; j <= N / 2; j++) {
+                row.add(currentValue);
+                currentValue += step;
+            }
+            matrix.add(row);
+        }
+
+        // Нижняя часть матрицы
+        for (int i = N / 2 - 1; i >= 0; i--) {
+            s = s - i - 1;
+            List<Integer> row = new ArrayList<>();
+            int currentValue = startValue + s * step;
+            for (int j = 0; j <= i; j++) {
+                row.add(currentValue);
+                currentValue += step;
+            }
+            matrix.add(row);
+        }
+        return matrix;
+    }
+
+    public static boolean isValidNumber(String input) {
+        if (input == null || input.isEmpty()) return false;
+        for (char c : input.toCharArray()) {
+            if (!Character.isDigit(c)) return false;
+        }
+        int number;
+        try {
+            number = Integer.parseInt(input);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        return number >= 1 && number <= 100;
+    }
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        String input;
+        int N;
+
+        while (true) {
+            System.out.print("Введите количество строк матрицы: ");
+            input = scanner.nextLine();
+
+            String[] words = input.trim().split("\\s+");
+            if (words.length != 1) {
+                System.out.println("Некорректный ввод. Пожалуйста, введите только одно число.");
+            } else if (isValidNumber(words[0])) {
+                N = Integer.parseInt(words[0]);
+                break;
+            } else {
+                System.out.println("Некорректный ввод. Пожалуйста, введите число от 1 до 100.");
+            }
+        }
+
+        List<List<Integer>> matrix = generateMatrix(N);
+        printMatrix(matrix);
+
+        scanner.close();
+    }
+}
