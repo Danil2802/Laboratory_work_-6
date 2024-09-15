@@ -1,0 +1,369 @@
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Random;
+import java.util.Scanner;
+
+public class AES128CFB {
+
+     // Таблица S-Box
+    private static final byte[] sbox = {
+            (byte) 0x63, (byte) 0x7c, (byte) 0x77, (byte) 0x7b, (byte) 0xf2, (byte) 0x6b, (byte) 0x6f, (byte) 0xc5,
+            (byte) 0x30, (byte) 0x01, (byte) 0x67, (byte) 0x2b, (byte) 0xfe, (byte) 0xd7, (byte) 0xab, (byte) 0x76,
+            (byte) 0xca, (byte) 0x82, (byte) 0xc9, (byte) 0x7d, (byte) 0xfa, (byte) 0x59, (byte) 0x47, (byte) 0xf0,
+            (byte) 0xad, (byte) 0xd4, (byte) 0xa2, (byte) 0xaf, (byte) 0x9c, (byte) 0xa4, (byte) 0x72, (byte) 0xc0,
+            (byte) 0xb7, (byte) 0xfd, (byte) 0x93, (byte) 0x26, (byte) 0x36, (byte) 0x3f, (byte) 0xf7, (byte) 0xcc,
+            (byte) 0x34, (byte) 0xa5, (byte) 0xe5, (byte) 0xf1, (byte) 0x71, (byte) 0xd8, (byte) 0x31, (byte) 0x15,
+            (byte) 0x04, (byte) 0xc7, (byte) 0x23, (byte) 0xc3, (byte) 0x18, (byte) 0x96, (byte) 0x05, (byte) 0x9a,
+            (byte) 0x07, (byte) 0x12, (byte) 0x80, (byte) 0xe2, (byte) 0xeb, (byte) 0x27, (byte) 0xb2, (byte) 0x75,
+            (byte) 0x09, (byte) 0x83, (byte) 0x2c, (byte) 0x1a, (byte) 0x1b, (byte) 0x6e, (byte) 0x5a, (byte) 0xa0,
+            (byte) 0x52, (byte) 0x3b, (byte) 0xd6, (byte) 0xb3, (byte) 0x29, (byte) 0xe3, (byte) 0x2f, (byte) 0x84,
+            (byte) 0x53, (byte) 0xd1, (byte) 0x00, (byte) 0xed, (byte) 0x20, (byte) 0xfc, (byte) 0xb1, (byte) 0x5b,
+            (byte) 0x6a, (byte) 0xcb, (byte) 0xbe, (byte) 0x39, (byte) 0x4a, (byte) 0x4c, (byte) 0x58, (byte) 0xcf,
+            (byte) 0xd0, (byte) 0xef, (byte) 0xaa, (byte) 0xfb, (byte) 0x43, (byte) 0x4d, (byte) 0x33, (byte) 0x85,
+            (byte) 0x45, (byte) 0xf9, (byte) 0x02, (byte) 0x7f, (byte) 0x50, (byte) 0x3c, (byte) 0x9f, (byte) 0xa8,
+            (byte) 0x51, (byte) 0xa3, (byte) 0x40, (byte) 0x8f, (byte) 0x92, (byte) 0x9d, (byte) 0x38, (byte) 0xf5,
+            (byte) 0xbc, (byte) 0xb6, (byte) 0xda, (byte) 0x21, (byte) 0x10, (byte) 0xff, (byte) 0xf3, (byte) 0xd2,
+            (byte) 0xcd, (byte) 0x0c, (byte) 0x13, (byte) 0xec, (byte) 0x5f, (byte) 0x97, (byte) 0x44, (byte) 0x17,
+            (byte) 0xc4, (byte) 0xa7, (byte) 0x7e, (byte) 0x3d, (byte) 0x64, (byte) 0x5d, (byte) 0x19, (byte) 0x73,
+            (byte) 0x60, (byte) 0x81, (byte) 0x4f, (byte) 0xdc, (byte) 0x22, (byte) 0x2a, (byte) 0x90, (byte) 0x88,
+            (byte) 0x46, (byte) 0xee, (byte) 0xb8, (byte) 0x14, (byte) 0xde, (byte) 0x5e, (byte) 0x0b, (byte) 0xdb,
+            (byte) 0xe0, (byte) 0x32, (byte) 0x3a, (byte) 0x0a, (byte) 0x49, (byte) 0x06, (byte) 0x24, (byte) 0x5c,
+            (byte) 0xc2, (byte) 0xd3, (byte) 0xac, (byte) 0x62, (byte) 0x91, (byte) 0x95, (byte) 0xe4, (byte) 0x79,
+            (byte) 0xe7, (byte) 0xc8, (byte) 0x37, (byte) 0x6d, (byte) 0x8d, (byte) 0xd5, (byte) 0x4e, (byte) 0xa9,
+            (byte) 0x6c, (byte) 0x56, (byte) 0xf4, (byte) 0xea, (byte) 0x65, (byte) 0x7a, (byte) 0xae, (byte) 0x08,
+            (byte) 0xba, (byte) 0x78, (byte) 0x25, (byte) 0x2e, (byte) 0x1c, (byte) 0xa6, (byte) 0xb4, (byte) 0xc6,
+            (byte) 0xe8, (byte) 0xdd, (byte) 0x74, (byte) 0x1f, (byte) 0x4b, (byte) 0xbd, (byte) 0x8b, (byte) 0x8a,
+            (byte) 0x70, (byte) 0x3e, (byte) 0xb5, (byte) 0x66, (byte) 0x48, (byte) 0x03, (byte) 0xf6, (byte) 0x0e,
+            (byte) 0x61, (byte) 0x35, (byte) 0x57, (byte) 0xb9, (byte) 0x86, (byte) 0xc1, (byte) 0x1d, (byte) 0x9e,
+            (byte) 0xe1, (byte) 0xf8, (byte) 0x98, (byte) 0x11, (byte) 0x69, (byte) 0xd9, (byte) 0x8e, (byte) 0x94,
+            (byte) 0x9b, (byte) 0x1e, (byte) 0x87, (byte) 0xe9, (byte) 0xce, (byte) 0x55, (byte) 0x28, (byte) 0xdf,
+            (byte) 0x8c, (byte) 0xa1, (byte) 0x89, (byte) 0x0d, (byte) 0xbf, (byte) 0xe6, (byte) 0x42, (byte) 0x68,
+            (byte) 0x41, (byte) 0x99, (byte) 0x2d, (byte) 0x0f, (byte) 0xb0, (byte) 0x54, (byte) 0xbb, (byte) 0x16
+    };
+
+    // Таблица обратного S-Box (InvS-Box)
+    private static final byte[] rsbox = {
+            (byte) 0x52, (byte) 0x09, (byte) 0x6a, (byte) 0xd5, (byte) 0x30, (byte) 0x36, (byte) 0xa5, (byte) 0x38,
+            (byte) 0xbf, (byte) 0x40, (byte) 0xa3, (byte) 0x9e, (byte) 0x81, (byte) 0xf3, (byte) 0xd7, (byte) 0xfb,
+            (byte) 0x7c, (byte) 0xe3, (byte) 0x39, (byte) 0x82, (byte) 0x9b, (byte) 0x2f, (byte) 0xff, (byte) 0x87,
+            (byte) 0x34, (byte) 0x8e, (byte) 0x43, (byte) 0x44, (byte) 0xc4, (byte) 0xde, (byte) 0xe9, (byte) 0xcb,
+            (byte) 0x54, (byte) 0x7b, (byte) 0x94, (byte) 0x32, (byte) 0xa6, (byte) 0xc2, (byte) 0x23, (byte) 0x3d,
+            (byte) 0xee, (byte) 0x4c, (byte) 0x95, (byte) 0x0b, (byte) 0x42, (byte) 0xfa, (byte) 0xc3, (byte) 0x4e,
+            (byte) 0x08, (byte) 0x2e, (byte) 0xa1, (byte) 0x66, (byte) 0x28, (byte) 0xd9, (byte) 0x24, (byte) 0xb2,
+            (byte) 0x76, (byte) 0x5b, (byte) 0xa2, (byte) 0x49, (byte) 0x6d, (byte) 0x8b, (byte) 0xd1, (byte) 0x25,
+            (byte) 0x72, (byte) 0xf8, (byte) 0xf6, (byte) 0x64, (byte) 0x86, (byte) 0x68, (byte) 0x98, (byte) 0x16,
+            (byte) 0xd4, (byte) 0xa4, (byte) 0x5c, (byte) 0xcc, (byte) 0x5d, (byte) 0x65, (byte) 0xb6, (byte) 0x92,
+            (byte) 0x6c, (byte) 0x70, (byte) 0x48, (byte) 0x50, (byte) 0xfd, (byte) 0xed, (byte) 0xb9, (byte) 0xda,
+            (byte) 0x5e, (byte) 0x15, (byte) 0x46, (byte) 0x57, (byte) 0xa7, (byte) 0x8d, (byte) 0x9d, (byte) 0x84,
+            (byte) 0x90, (byte) 0xd8, (byte) 0xab, (byte) 0x00, (byte) 0x8c, (byte) 0xbc, (byte) 0xd3, (byte) 0x0a,
+            (byte) 0xf7, (byte) 0xe4, (byte) 0x58, (byte) 0x05, (byte) 0xb8, (byte) 0xb3, (byte) 0x45, (byte) 0x06,
+            (byte) 0xd0, (byte) 0x2c, (byte) 0x1e, (byte) 0x8f, (byte) 0xca, (byte) 0x3f, (byte) 0x0f, (byte) 0x02,
+            (byte) 0xc1, (byte) 0xaf, (byte) 0xbd, (byte) 0x03, (byte) 0x01, (byte) 0x13, (byte) 0x8a, (byte) 0x6b,
+            (byte) 0x3a, (byte) 0x91, (byte) 0x11, (byte) 0x41, (byte) 0x4f, (byte) 0x67, (byte) 0xdc, (byte) 0xea,
+            (byte) 0x97, (byte) 0xf2, (byte) 0xcf, (byte) 0xce, (byte) 0xf0, (byte) 0xb4, (byte) 0xe6, (byte) 0x73,
+            (byte) 0x96, (byte) 0xac, (byte) 0x74, (byte) 0x22, (byte) 0xe7, (byte) 0xad, (byte) 0x35, (byte) 0x85,
+            (byte) 0xe2, (byte) 0xf9, (byte) 0x37, (byte) 0xe8, (byte) 0x1c, (byte) 0x75, (byte) 0xdf, (byte) 0x6e,
+            (byte) 0x47, (byte) 0xf1, (byte) 0x1a, (byte) 0x71, (byte) 0x1d, (byte) 0x29, (byte) 0xc5, (byte) 0x89,
+            (byte) 0x6f, (byte) 0xb7, (byte) 0x62, (byte) 0x0e, (byte) 0xaa, (byte) 0x18, (byte) 0xbe, (byte) 0x1b,
+            (byte) 0xfc, (byte) 0x56, (byte) 0x3e, (byte) 0x4b, (byte) 0xc6, (byte) 0xd2, (byte) 0xfc, (byte) 0x56, (byte) 0x3e, (byte) 0x4b, (byte) 0xc6, (byte) 0xd2, (byte) 0x79, (byte) 0x20,
+            (byte) 0x9a, (byte) 0xdb, (byte) 0xc0, (byte) 0xfe, (byte) 0x78, (byte) 0xcd, (byte) 0x5a, (byte) 0xf4,
+            (byte) 0x1f, (byte) 0xdd, (byte) 0xa8, (byte) 0x33, (byte) 0x88, (byte) 0x07, (byte) 0xc7, (byte) 0x31,
+            (byte) 0xb1, (byte) 0x12, (byte) 0x10, (byte) 0x59, (byte) 0x27, (byte) 0x80, (byte) 0xec, (byte) 0x5f,
+            (byte) 0x60, (byte) 0x51, (byte) 0x7f, (byte) 0xa9, (byte) 0x19, (byte) 0xb5, (byte) 0x4a, (byte) 0x0d,
+            (byte) 0x2d, (byte) 0xe5, (byte) 0x7a, (byte) 0x9f, (byte) 0x93, (byte) 0xc9, (byte) 0x9c, (byte) 0xef,
+            (byte) 0xa0, (byte) 0xe0, (byte) 0x3b, (byte) 0x4d, (byte) 0xae, (byte) 0x2a, (byte) 0xf5, (byte) 0xb0,
+            (byte) 0xc8, (byte) 0xeb, (byte) 0xbb, (byte) 0x3c, (byte) 0x83, (byte) 0x53, (byte) 0x99, (byte) 0x61,
+            (byte) 0x17, (byte) 0x2b, (byte) 0x04, (byte) 0x7e, (byte) 0xba, (byte) 0x77, (byte) 0xd6, (byte) 0x26,
+            (byte) 0xe1, (byte) 0x69, (byte) 0x14, (byte) 0x63, (byte) 0x55, (byte) 0x21, (byte) 0x0c, (byte) 0x7d
+    };
+
+    // Вектор инициализации (IV)
+    private static byte[] IV = new byte[16];
+
+    // Функция для генерации случайного ключа и IV
+    private static void generateRandomKeyAndIV(byte[] key, byte[] iv) {
+        Random random = new Random();
+        random.nextBytes(key);
+        random.nextBytes(iv);
+    }
+
+    // Функция для подстановки байтов через S-box
+    private static void subBytes(byte[] state) {
+        for (int i = 0; i < 16; ++i) {
+            state[i] = sbox[state[i] & 0xFF];
+        }
+    }
+
+    // Функция обратной подстановки байтов через S-box
+    private static void invSubBytes(byte[] state) {
+        for (int i = 0; i < 16; ++i) {
+            state[i] = rsbox[state[i] & 0xFF];
+        }
+    }
+
+    // Сдвиг строк (ShiftRows)
+    private static void shiftRows(byte[] state) {
+        byte temp;
+
+        // Строка 1: сдвиг на 1 байт влево
+        temp = state[1];
+        state[1] = state[5];
+        state[5] = state[9];
+        state[9] = state[13];
+        state[13] = temp;
+
+        // Строка 2: сдвиг на 2 байта влево
+        temp = state[2];
+        state[2] = state[10];
+        state[10] = temp;
+        temp = state[6];
+        state[6] = state[14];
+        state[14] = temp;
+
+        // Строка 3: сдвиг на 3 байта влево
+        temp = state[3];
+        state[3] = state[15];
+        state[15] = state[11];
+        state[11] = state[7];
+        state[7] = temp;
+    }
+
+    // Обратный сдвиг строк (InvShiftRows)
+    private static void invShiftRows(byte[] state) {
+        byte temp;
+
+        // Строка 1: сдвиг на 1 байт вправо
+        temp = state[13];
+        state[13] = state[9];
+        state[9] = state[5];
+        state[5] = state[1];
+        state[1] = temp;
+
+        // Строка 2: сдвиг на 2 байта вправо
+        temp = state[2];
+        state[2] = state[10];
+        state[10] = temp;
+        temp = state[6];
+        state[6] = state[14];
+        state[14] = temp;
+
+        // Строка 3: сдвиг на 3 байта вправо
+        temp = state[7];
+        state[7] = state[11];
+        state[11] = state[15];
+        state[15] = state[3];
+        state[3] = temp;
+    }
+
+    // Таблицы Rcon
+    private static final byte[] Rcon = {
+            (byte) 0x01, (byte) 0x02, (byte) 0x04, (byte) 0x08, (byte) 0x10, (byte) 0x20, (byte) 0x40, (byte) 0x80, (byte) 0x1B, (byte) 0x36
+    };
+
+     // Генерация раундовых ключей
+    private static void keyExpansion(byte[] key, byte[] roundKeys) {
+        System.arraycopy(key, 0, roundKeys, 0, 16);
+
+        for (int i = 16; i < 176; i += 16) {
+            byte[] temp = Arrays.copyOfRange(roundKeys, i - 16, i);
+
+            if (i % 16 == 0) {
+                // Rotate, apply S-box and XOR with Rcon
+                byte tempK = temp[0];
+                System.arraycopy(temp, 1, temp, 0, 15);
+                temp[15] = tempK;
+
+                for (int j = 0; j < 16; ++j) {
+                    temp[j] = sbox[temp[j] & 0xFF];
+                }
+
+                temp[0] ^= Rcon[(i / 16) - 1];
+            }
+
+            for (int j = 0; j < 16; ++j) {
+                roundKeys[i + j] = (byte) (roundKeys[i + j - 16] ^ temp[j]);
+            }
+        }
+    }
+
+    // Применение раундового ключа
+    private static void addRoundKey(byte[] state, byte[] roundKey) {
+        for (int i = 0; i < 16; ++i) {
+            state[i] ^= roundKey[i];
+        }
+    }
+
+    // Шифрование блока данных AES-128
+    private static void aes128Encrypt(byte[] input, byte[] roundKeys) {
+        byte[] state = Arrays.copyOf(input, 16);
+
+        addRoundKey(state, roundKeys);
+
+        for (int round = 1; round <= 9; ++round) {
+            subBytes(state);
+            shiftRows(state);
+            // MixColumns(state); // Пропускаем для CFB
+            addRoundKey(state, Arrays.copyOfRange(roundKeys, round * 16, (round + 1) * 16));
+        }
+
+        subBytes(state);
+        shiftRows(state);
+        addRoundKey(state, Arrays.copyOfRange(roundKeys, 160, 176));
+
+        System.arraycopy(state, 0, input, 0, 16);
+    }
+
+    // Расшифрование блока данных AES-128
+    private static void aes128Decrypt(byte[] input, byte[] roundKeys) {
+        byte[] state = Arrays.copyOf(input, 16);
+
+        addRoundKey(state, Arrays.copyOfRange(roundKeys, 160, 176));
+
+        for (int round = 9; round >= 1; --round) {
+            invShiftRows(state);
+            invSubBytes(state);
+            addRoundKey(state, Arrays.copyOfRange(roundKeys, round * 16, (round + 1) * 16));
+            // InvMixColumns(state); // Пропускаем для CFB
+        }
+
+        invShiftRows(state);
+        invSubBytes(state);
+        addRoundKey(state, roundKeys);
+
+        System.arraycopy(state, 0, input, 0, 16);
+    }
+
+    // Функция для форматированного вывода байтов в виде hex
+    private static void printHex(byte[] data, int length, String label) {
+        System.out.print(label);
+        for (int i = 0; i < length; ++i) {
+            System.out.printf("%02x ", data[i]);
+        }
+        System.out.println();
+    }
+
+    // Функция для вывода состояния (state)
+    private static void printState(byte[] state, String label) {
+        printHex(state, 16, label);
+    }
+
+    // Функция для вывода ключей
+    private static void printRoundKeys(byte[] roundKeys, int count) {
+        for (int i = 0; i < count; ++i) {
+            printHex(Arrays.copyOfRange(roundKeys, i * 16, (i + 1) * 16), 16, "Round Key " + i + ": ");
+        }
+    }
+
+    // Функция для вывода вектора инициализации (IV)
+    private static void printIV(byte[] iv, String label) {
+        printHex(iv, 16, label);
+    }
+
+     // Обновленная функция AES128_CFB_Encrypt с добавленным выводом
+    private static byte[] aes128CFBEncrypt(byte[] plaintext, byte[] key) {
+        byte[] roundKeys = new byte[176];
+        keyExpansion(key, roundKeys);
+        printRoundKeys(roundKeys, 11); // Выводим все раундовые ключи
+
+        byte[] iv = Arrays.copyOf(IV, 16);
+        printIV(iv, "Initial IV: ");
+
+        byte[] paddedPlaintext = pkcs7Padding(plaintext);
+        byte[] ciphertext = new byte[paddedPlaintext.length];
+
+        for (int i = 0; i < paddedPlaintext.length; i += 16) {
+            int blockLength = Math.min(16, paddedPlaintext.length - i);
+            aes128Encrypt(iv, roundKeys);
+            printState(iv, "State after encryption with IV: "); // Вывод промежуточного состояния
+            for (int j = 0; j < blockLength; ++j) {
+                ciphertext[i + j] = (byte) (paddedPlaintext[i + j] ^ iv[j]);
+                iv[j] = ciphertext[i + j];
+            }
+            printIV(iv, "IV for next block: ");
+        }
+
+        return ciphertext;
+    }
+
+    // Обновленная функция AES128_CFB_Decrypt с добавленным выводом
+    private static byte[] aes128CFBDecrypt(byte[] ciphertext, byte[] key) {
+        byte[] roundKeys = new byte[176];
+        keyExpansion(key, roundKeys);
+        printRoundKeys(roundKeys, 11); // Выводим все раундовые ключи
+
+        byte[] iv = Arrays.copyOf(IV, 16);
+        printIV(iv, "Initial IV: ");
+
+        byte[] plaintext = new byte[ciphertext.length];
+
+        for (int i = 0; i < ciphertext.length; i += 16) {
+            int blockLength = Math.min(16, ciphertext.length - i);
+            byte[] temp = Arrays.copyOf(iv, 16);
+
+            aes128Encrypt(iv, roundKeys);
+            printState(iv, "State after encryption with IV: "); // Вывод промежуточного состояния
+
+            for (int j = 0; j < blockLength; ++j) {
+                plaintext[i + j] = (byte) (ciphertext[i + j] ^ iv[j]);
+                iv[j] = ciphertext[i + j];
+            }
+            printIV(iv, "IV for next block: ");
+        }
+
+        return pkcs7Unpadding(plaintext);
+    }
+
+        // Функция для PKCS7 заполнения
+    private static byte[] pkcs7Padding(byte[] plaintext) {
+        int paddingValue = 16 - (plaintext.length % 16);
+        byte[] padded = new byte[plaintext.length + paddingValue];
+        System.arraycopy(plaintext, 0, padded, 0, plaintext.length);
+        Arrays.fill(padded, plaintext.length, padded.length, (byte) paddingValue);
+        return padded;
+    }
+
+    // Функция для удаления PKCS7 padding
+    private static byte[] pkcs7Unpadding(byte[] plaintext) {
+        int paddingValue = plaintext[plaintext.length - 1];
+        if (paddingValue > 0 && paddingValue <= 16) {
+            boolean validPadding = true;
+            for (int i = 1; i <= paddingValue; i++) {
+                if (plaintext[plaintext.length - i] != paddingValue) {
+                    validPadding = false;
+                    break;
+                }
+            }
+            if (validPadding) {
+                return Arrays.copyOf(plaintext, plaintext.length - paddingValue);
+            }
+        }
+        return plaintext; // Возвращаем исходный массив, если заполнение некорректно
+    }
+    
+    public static void main(String[] args) {
+        byte[] key = new byte[16];
+        generateRandomKeyAndIV(key, IV);
+
+        // Ввод текста пользователем
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Введите текст для шифрования: ");
+        String input = scanner.nextLine();
+
+        // Преобразование введённого текста в массив байтов (UTF-8)
+        byte[] plaintext = input.getBytes(StandardCharsets.UTF_8);
+
+        // Шифрование
+        byte[] ciphertext = aes128CFBEncrypt(plaintext, key);
+
+        System.out.print("Ciphertext: ");
+        for (byte b : ciphertext) {
+            System.out.printf("%02x", b);
+        }
+        System.out.println();
+
+        // Расшифрование
+        byte[] decryptedtext = aes128CFBDecrypt(ciphertext, key);
+
+        System.out.println("Decrypted: " + new String(decryptedtext, StandardCharsets.UTF_8));
+    }
+}
