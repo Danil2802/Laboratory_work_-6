@@ -5,7 +5,7 @@ import java.util.Scanner;
 
 public class AES128CFB {
 
-     // Таблица S-Box
+         // Таблица S-Box
     private static final byte[] sbox = {
             (byte) 0x63, (byte) 0x7c, (byte) 0x77, (byte) 0x7b, (byte) 0xf2, (byte) 0x6b, (byte) 0x6f, (byte) 0xc5,
             (byte) 0x30, (byte) 0x01, (byte) 0x67, (byte) 0x2b, (byte) 0xfe, (byte) 0xd7, (byte) 0xab, (byte) 0x76,
@@ -77,32 +77,91 @@ public class AES128CFB {
             (byte) 0xe1, (byte) 0x69, (byte) 0x14, (byte) 0x63, (byte) 0x55, (byte) 0x21, (byte) 0x0c, (byte) 0x7d
     };
 
+
     // Вектор инициализации (IV)
     private static byte[] IV = new byte[16];
 
-    // Функция для генерации случайного ключа и IV
+    // Умножение на 2 в GF(2^8)
+    private static byte mul2(byte x) {
+        return (byte) ((x << 1) ^ ((x & 0x80) != 0 ? 0x1B : 0x00));
+    }
+
+    // Умножение на 3 в GF(2^8)
+    private static byte mul3(byte x) {
+        return (byte) (mul2(x) ^ x);
+    }
+
+    // Умножение на 9 в GF(2^8)
+    private static byte mul9(byte x) {
+        return (byte) (mul2(mul2(mul2(x))) ^ x);
+    }
+
+    // Умножение на 11 в GF(2^8)
+    private static byte mul11(byte x) {
+        return (byte) ((mul2(mul2(mul2(x))) ^ x ^ x) & 0xFF);
+    }
+
+    // Умножение на 13 в GF(2^8)
+    private static byte mul13(byte x) {
+        return (byte) ((mul2(mul2(mul2(x))) ^ mul2(x) ^ x) & 0xFF);
+    }
+
+    // Умножение на 14 в GF(2^8)
+    private static byte mul14(byte x) {
+        return (byte) ((mul2(mul2(mul2(x))) ^ mul2(mul2(x)) ^ x) & 0xFF);
+    }
+
+    // MixColumns
+    private static void MixColumns(byte[] state) {
+        byte[] temp = new byte[4];
+        for (int i = 0; i < 4; ++i) {
+            temp[0] = (byte) (mul2(state[i * 4]) ^ mul3(state[i * 4 + 1]) ^ state[i * 4 + 2] ^ state[i * 4 + 3]);
+            temp[1] = (byte) (state[i * 4] ^ mul2(state[i * 4 + 1]) ^ mul3(state[i * 4 + 2]) ^ state[i * 4 + 3]);
+            temp[2] = (byte) (state[i * 4] ^ state[i * 4 + 1] ^ mul2(state[i * 4 + 2]) ^ mul3(state[i * 4 + 3]));
+            temp[3] = (byte) (mul3(state[i * 4]) ^ state[i * 4 + 1] ^ state[i * 4 + 2] ^ mul2(state[i * 4 + 3]));
+            for (int j = 0; j < 4; ++j) {
+                state[i * 4 + j] = temp[j];
+            }
+        }
+    }
+
+    // InvMixColumns
+    private static void InvMixColumns(byte[] state) {
+        byte[] temp = new byte[4];
+        for (int i = 0; i < 4; ++i) {
+            temp[0] = (byte) (mul14(state[i * 4]) ^ mul11(state[i * 4 + 1]) ^ mul13(state[i * 4 + 2]) ^ mul9(state[i * 4 + 3]));
+            temp[1] = (byte) (mul9(state[i * 4]) ^ mul14(state[i * 4 + 1]) ^ mul11(state[i * 4 + 2]) ^ mul13(state[i * 4 + 3]));
+            temp[2] = (byte) (mul13(state[i * 4]) ^ mul9(state[i * 4 + 1]) ^ mul14(state[i * 4 + 2]) ^ mul11(state[i * 4 + 3]));
+            temp[3] = (byte) (mul11(state[i * 4]) ^ mul13(state[i * 4 + 1]) ^ mul9(state[i * 4 + 2]) ^ mul14(state[i * 4 + 3]));
+            for (int j = 0; j < 4; ++j) {
+                state[i * 4 + j] = temp[j];
+            }
+        }
+    }
+    
+ // Функция для генерации случайного ключа и IV
     private static void generateRandomKeyAndIV(byte[] key, byte[] iv) {
-        Random random = new Random();
-        random.nextBytes(key);
-        random.nextBytes(iv);
+        Random rand = new Random();
+        rand.nextBytes(key);
+        rand.nextBytes(iv);
     }
 
     // Функция для подстановки байтов через S-box
-    private static void subBytes(byte[] state) {
+    private static void SubBytes(byte[] state) {
         for (int i = 0; i < 16; ++i) {
             state[i] = sbox[state[i] & 0xFF];
         }
     }
 
     // Функция обратной подстановки байтов через S-box
-    private static void invSubBytes(byte[] state) {
+    private static void InvSubBytes(byte[] state) {
         for (int i = 0; i < 16; ++i) {
             state[i] = rsbox[state[i] & 0xFF];
         }
     }
 
     // Сдвиг строк (ShiftRows)
-    private static void shiftRows(byte[] state) {
+    private static void ShiftRows(byte[] state) {
         byte temp;
 
         // Строка 1: сдвиг на 1 байт влево
@@ -128,8 +187,9 @@ public class AES128CFB {
         state[7] = temp;
     }
 
+
     // Обратный сдвиг строк (InvShiftRows)
-    private static void invShiftRows(byte[] state) {
+    private static void InvShiftRows(byte[] state) {
         byte temp;
 
         // Строка 1: сдвиг на 1 байт вправо
@@ -160,24 +220,26 @@ public class AES128CFB {
             (byte) 0x01, (byte) 0x02, (byte) 0x04, (byte) 0x08, (byte) 0x10, (byte) 0x20, (byte) 0x40, (byte) 0x80, (byte) 0x1B, (byte) 0x36
     };
 
-     // Генерация раундовых ключей
-    private static void keyExpansion(byte[] key, byte[] roundKeys) {
+
+    // Генерация раундовых ключей
+    private static void KeyExpansion(byte[] key, byte[] roundKeys) {
+        byte[] temp = new byte[16];
         System.arraycopy(key, 0, roundKeys, 0, 16);
 
         for (int i = 16; i < 176; i += 16) {
-            byte[] temp = Arrays.copyOfRange(roundKeys, i - 16, i);
+            System.arraycopy(roundKeys, i - 16, temp, 0, 16);
 
             if (i % 16 == 0) {
                 // Rotate, apply S-box and XOR with Rcon
-                byte tempK = temp[0];
+                byte k = temp[0];
                 System.arraycopy(temp, 1, temp, 0, 15);
-                temp[15] = tempK;
+                temp[15] = k;
 
                 for (int j = 0; j < 16; ++j) {
                     temp[j] = sbox[temp[j] & 0xFF];
                 }
 
-                temp[0] ^= Rcon[(i / 16) - 1];
+                temp[0] ^= Rcon[i / 16 - 1];
             }
 
             for (int j = 0; j < 16; ++j) {
@@ -187,48 +249,59 @@ public class AES128CFB {
     }
 
     // Применение раундового ключа
-    private static void addRoundKey(byte[] state, byte[] roundKey) {
+    private static void AddRoundKey(byte[] state, byte[] roundKey) {
         for (int i = 0; i < 16; ++i) {
             state[i] ^= roundKey[i];
         }
     }
 
     // Шифрование блока данных AES-128
-    private static void aes128Encrypt(byte[] input, byte[] roundKeys) {
+    private static void AES128_Encrypt(byte[] input, byte[] roundKeys) {
         byte[] state = Arrays.copyOf(input, 16);
 
-        addRoundKey(state, roundKeys);
+        AddRoundKey(state, roundKeys);
 
         for (int round = 1; round <= 9; ++round) {
-            subBytes(state);
-            shiftRows(state);
-            // MixColumns(state); // Пропускаем для CFB
-            addRoundKey(state, Arrays.copyOfRange(roundKeys, round * 16, (round + 1) * 16));
+            SubBytes(state);
+
+            ShiftRows(state);
+
+            MixColumns(state);
+
+            AddRoundKey(state, Arrays.copyOfRange(roundKeys, round * 16, (round + 1) * 16));
         }
 
-        subBytes(state);
-        shiftRows(state);
-        addRoundKey(state, Arrays.copyOfRange(roundKeys, 160, 176));
+        SubBytes(state);
+
+        ShiftRows(state);
+
+        AddRoundKey(state, Arrays.copyOfRange(roundKeys, 160, 176));
 
         System.arraycopy(state, 0, input, 0, 16);
     }
 
     // Расшифрование блока данных AES-128
-    private static void aes128Decrypt(byte[] input, byte[] roundKeys) {
+    private static void AES128_Decrypt(byte[] input, byte[] roundKeys) {
         byte[] state = Arrays.copyOf(input, 16);
 
-        addRoundKey(state, Arrays.copyOfRange(roundKeys, 160, 176));
+        AddRoundKey(state, Arrays.copyOfRange(roundKeys, 160, 176));
+        printState(state, "Initial AddRoundKey: ");
 
         for (int round = 9; round >= 1; --round) {
-            invShiftRows(state);
-            invSubBytes(state);
-            addRoundKey(state, Arrays.copyOfRange(roundKeys, round * 16, (round + 1) * 16));
-            // InvMixColumns(state); // Пропускаем для CFB
+            InvShiftRows(state);
+
+            InvSubBytes(state);
+
+            AddRoundKey(state, Arrays.copyOfRange(roundKeys, round * 16, (round + 1) * 16));
+
+            InvMixColumns(state);
         }
 
-        invShiftRows(state);
-        invSubBytes(state);
-        addRoundKey(state, roundKeys);
+        InvShiftRows(state);
+
+        InvSubBytes(state);
+
+        AddRoundKey(state, roundKeys);
 
         System.arraycopy(state, 0, input, 0, 16);
     }
@@ -259,88 +332,89 @@ public class AES128CFB {
         printHex(iv, 16, label);
     }
 
-     // Обновленная функция AES128_CFB_Encrypt с добавленным выводом
-    private static byte[] aes128CFBEncrypt(byte[] plaintext, byte[] key) {
+    // Функция AES128_CFB_Encrypt с выводом
+    private static void AES128_CFB_Encrypt(byte[] plaintext, byte[] ciphertext, int length, byte[] key) {
         byte[] roundKeys = new byte[176];
-        keyExpansion(key, roundKeys);
+        KeyExpansion(key, roundKeys);
         printRoundKeys(roundKeys, 11); // Выводим все раундовые ключи
 
         byte[] iv = Arrays.copyOf(IV, 16);
         printIV(iv, "Initial IV: ");
 
-        byte[] paddedPlaintext = pkcs7Padding(plaintext);
-        byte[] ciphertext = new byte[paddedPlaintext.length];
-
-        for (int i = 0; i < paddedPlaintext.length; i += 16) {
-            int blockLength = Math.min(16, paddedPlaintext.length - i);
-            aes128Encrypt(iv, roundKeys);
+        for (int i = 0; i < length; i += 16) {
+            AES128_Encrypt(iv, roundKeys);
             printState(iv, "State after encryption with IV: "); // Вывод промежуточного состояния
-            for (int j = 0; j < blockLength; ++j) {
-                ciphertext[i + j] = (byte) (paddedPlaintext[i + j] ^ iv[j]);
-                iv[j] = ciphertext[i + j];
+            for (int j = 0; j < 16; ++j) {
+                if (i + j < length) { // Проверка на выход за пределы массива
+                    ciphertext[i + j] = (byte) (plaintext[i + j] ^ iv[j]);
+                    iv[j] = ciphertext[i + j];
+                }
             }
             printIV(iv, "IV for next block: ");
         }
-
-        return ciphertext;
     }
 
-    // Обновленная функция AES128_CFB_Decrypt с добавленным выводом
-    private static byte[] aes128CFBDecrypt(byte[] ciphertext, byte[] key) {
+     // Функция AES128_CFB_Decrypt с выводом
+    private static void AES128_CFB_Decrypt(byte[] ciphertext, byte[] plaintext, int length, byte[] key) {
         byte[] roundKeys = new byte[176];
-        keyExpansion(key, roundKeys);
+        KeyExpansion(key, roundKeys);
         printRoundKeys(roundKeys, 11); // Выводим все раундовые ключи
 
         byte[] iv = Arrays.copyOf(IV, 16);
         printIV(iv, "Initial IV: ");
 
-        byte[] plaintext = new byte[ciphertext.length];
-
-        for (int i = 0; i < ciphertext.length; i += 16) {
-            int blockLength = Math.min(16, ciphertext.length - i);
+        for (int i = 0; i < length; i += 16) {
             byte[] temp = Arrays.copyOf(iv, 16);
 
-            aes128Encrypt(iv, roundKeys);
+            AES128_Encrypt(iv, roundKeys);
             printState(iv, "State after encryption with IV: "); // Вывод промежуточного состояния
 
-            for (int j = 0; j < blockLength; ++j) {
-                plaintext[i + j] = (byte) (ciphertext[i + j] ^ iv[j]);
-                iv[j] = ciphertext[i + j];
+            for (int j = 0; j < 16; ++j) {
+                if (i + j < length) { // Проверка на выход за пределы массива
+                    plaintext[i + j] = (byte) (ciphertext[i + j] ^ iv[j]);
+                    iv[j] = ciphertext[i + j];
+                }
             }
             printIV(iv, "IV for next block: ");
         }
-
-        return pkcs7Unpadding(plaintext);
     }
 
-        // Функция для PKCS7 заполнения
-    private static byte[] pkcs7Padding(byte[] plaintext) {
+    // Функция для PKCS7 заполнения
+    private static byte[] PKCS7Padding(byte[] plaintext) {
         int paddingValue = 16 - (plaintext.length % 16);
-        byte[] padded = new byte[plaintext.length + paddingValue];
-        System.arraycopy(plaintext, 0, padded, 0, plaintext.length);
-        Arrays.fill(padded, plaintext.length, padded.length, (byte) paddingValue);
-        return padded;
+        byte[] padding = new byte[paddingValue];
+        Arrays.fill(padding, (byte) paddingValue);
+        byte[] newPlaintext = new byte[plaintext.length + paddingValue];
+        System.arraycopy(plaintext, 0, newPlaintext, 0, plaintext.length);
+        System.arraycopy(padding, 0, newPlaintext, plaintext.length, paddingValue);
+        return newPlaintext;
     }
 
     // Функция для удаления PKCS7 padding
-    private static byte[] pkcs7Unpadding(byte[] plaintext) {
+    private static byte[] PKCS7Unpadding(byte[] plaintext) {
         int paddingValue = plaintext[plaintext.length - 1];
         if (paddingValue > 0 && paddingValue <= 16) {
             boolean validPadding = true;
-            for (int i = 1; i <= paddingValue; i++) {
-                if (plaintext[plaintext.length - i] != paddingValue) {
+            for (int i = 0; i < paddingValue; i++) {
+                if (plaintext[plaintext.length - 1 - i] != paddingValue) {
                     validPadding = false;
                     break;
                 }
             }
             if (validPadding) {
-                return Arrays.copyOf(plaintext, plaintext.length - paddingValue);
+                byte[] newPlaintext = new byte[plaintext.length - paddingValue];
+                System.arraycopy(plaintext, 0, newPlaintext, 0, newPlaintext.length);
+                return newPlaintext;
+            } else {
+                throw new IllegalArgumentException("Invalid padding value: " + paddingValue);
             }
+        } else {
+            throw new IllegalArgumentException("Invalid padding value: " + paddingValue);
         }
-        return plaintext; // Возвращаем исходный массив, если заполнение некорректно
     }
-    
-    public static void main(String[] args) {
+
+
+       public static void main(String[] args) {
         byte[] key = new byte[16];
         generateRandomKeyAndIV(key, IV);
 
@@ -351,9 +425,19 @@ public class AES128CFB {
 
         // Преобразование введённого текста в массив байтов (UTF-8)
         byte[] plaintext = input.getBytes(StandardCharsets.UTF_8);
+        plaintext = PKCS7Padding(plaintext);  // Применяем PKCS7 заполнение
 
-        // Шифрование
-        byte[] ciphertext = aes128CFBEncrypt(plaintext, key);
+        byte[] ciphertext = new byte[plaintext.length];
+        byte[] decryptedtext = new byte[plaintext.length];
+
+        // Выводим сгенерированный ключ и вектор инициализации
+        printHex(key, 16, "Generated Key: ");
+        printIV(IV, "Generated IV: ");
+
+        AES128_CFB_Encrypt(plaintext, ciphertext, plaintext.length, key);
+        AES128_CFB_Decrypt(ciphertext, decryptedtext, plaintext.length, key);
+
+        decryptedtext = PKCS7Unpadding(decryptedtext);  // Убираем PKCS7 заполнение
 
         System.out.print("Ciphertext: ");
         for (byte b : ciphertext) {
@@ -361,9 +445,7 @@ public class AES128CFB {
         }
         System.out.println();
 
-        // Расшифрование
-        byte[] decryptedtext = aes128CFBDecrypt(ciphertext, key);
-
         System.out.println("Decrypted: " + new String(decryptedtext, StandardCharsets.UTF_8));
     }
 }
+
