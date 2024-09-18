@@ -24,11 +24,9 @@ void printMatrix(const vector<vector<double>>& matrix) {
     }
 }
 
-// Функция для перезаписи строк матрицы в обратном порядке
 void reverseRows(vector<vector<double>>& matrix) {
-    int M = matrix.size();
-    for (int i = 0; i < M / 2; ++i) {
-        swap(matrix[i], matrix[M - 1 - i]);
+    for (auto& row : matrix) {
+        reverse(row.begin(), row.end());
     }
 }
 
