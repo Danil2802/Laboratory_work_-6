@@ -1,41 +1,40 @@
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
 public class MatrixOperations {
 
-    // Function to generate random double numbers in the range [-50, 50]
-    private static double randomDouble(double min, double max, Random rand) {
+    // Функция для генерации случайных вещественных чисел в диапазоне [-50, 50]
+    private static double randomDouble(double min, double max) {
+        Random rand = new Random();
         return min + (max - min) * rand.nextDouble();
     }
 
-    // Function to print a matrix with better formatting
+    // Функция для вывода матрицы
     private static void printMatrix(List<List<Double>> matrix) {
         for (List<Double> row : matrix) {
             for (Double elem : row) {
-                System.out.printf("%8.4f ", elem);
+                System.out.print(elem + " ");
             }
             System.out.println();
         }
     }
 
-    // Function to reverse the rows of a matrix
+    // Функция для перезаписи чисел внутри каждой строки матрицы в обратном порядке
     private static void reverseRows(List<List<Double>> matrix) {
-        int M = matrix.size();
-        for (int i = 0; i < M / 2; i++) {
-            List<Double> temp = matrix.get(i);
-            matrix.set(i, matrix.get(M - 1 - i));
-            matrix.set(M - 1 - i, temp);
+        for (List<Double> row : matrix) {
+            Collections.reverse(row);
         }
     }
 
-    // Function to find the second minimum and maximum elements in a matrix
-    private static void findSecondMinMax(List<List<Double>> matrix, double[] result) {
+    // Функция для нахождения второго минимального и максимального элементов в матрице
+    private static void findSecondMinMax(List<List<Double>> matrix, double[] secondMinMax) {
         double minVal = Double.MAX_VALUE;
-        double maxVal = -Double.MAX_VALUE;
+        double maxVal = Double.MIN_VALUE;
         double secondMin = Double.MAX_VALUE;
-        double secondMax = -Double.MAX_VALUE;
+        double secondMax = Double.MIN_VALUE;
 
         for (List<Double> row : matrix) {
             for (Double elem : row) {
@@ -54,18 +53,14 @@ public class MatrixOperations {
                 }
             }
         }
-        result[0] = secondMin;
-        result[1] = secondMax;
-    }
 
-    private static boolean isNumber(String str) {
-        return str.chars().allMatch(Character::isDigit);
+        secondMinMax[0] = secondMin;
+        secondMinMax[1] = secondMax;
     }
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        Random rand = new Random();
-        int M = 0, N = 0;
+        int M = 0, N = 0; // Инициализация переменных
         boolean validInput = false;
 
         while (!validInput) {
@@ -78,31 +73,33 @@ public class MatrixOperations {
                 continue;
             }
 
-            if (!isNumber(tokens[0]) || !isNumber(tokens[1])) {
+            try {
+                M = Integer.parseInt(tokens[0]);
+                N = Integer.parseInt(tokens[1]);
+
+                if (M < 1 || M > 50 || N < 1 || N > 50) {
+                    System.out.println("Недопустимые условия. Пожалуйста, введите числа в диапазоне [1, 50].");
+                    continue;
+                }
+
+                if (M == 1 && N == 1) {
+                    System.out.println("Некорректные числа. Пожалуйста, введите числа, не равные оба 1.");
+                    continue;
+                }
+
+                validInput = true;
+            } catch (NumberFormatException e) {
                 System.out.println("Пожалуйста, введите два целых числа.");
-                continue;
             }
-
-            M = Integer.parseInt(tokens[0]);
-            N = Integer.parseInt(tokens[1]);
-
-            if (M < 1 || M > 50 || N < 1 || N > 50) {
-                System.out.println("Недопустимые условия. Пожалуйста, введите числа в диапазоне [1, 50].");
-                continue;
-            }
-
-            if (M == 1 && N == 1) {
-                System.out.println("Некорректные числа. Пожалуйста, введите числа, не равные оба 1.");
-                continue;
-            }
-            validInput = true;
         }
 
         List<List<Double>> matrix = new ArrayList<>();
+
+        // Инициализация матрицы случайными вещественными числами
         for (int i = 0; i < M; i++) {
             List<Double> row = new ArrayList<>();
             for (int j = 0; j < N; j++) {
-                row.add(randomDouble(-50, 50, rand));
+                row.add(randomDouble(-50, 50));
             }
             matrix.add(row);
         }
@@ -110,19 +107,18 @@ public class MatrixOperations {
         System.out.println("Исходная матрица:");
         printMatrix(matrix);
 
-        // Reverse the rows of the matrix
+        // Перезапись чисел внутри каждой строки матрицы в обратном порядке
         reverseRows(matrix);
 
-        System.out.println("Матрица после перезаписи строк в обратном порядке:");
+        System.out.println("Матрица после перезаписи чисел внутри каждой строки в обратном порядке:");
         printMatrix(matrix);
 
-        // Find the second minimum and maximum elements
+        // Нахождение второго минимального и максимального элементов
         double[] secondMinMax = new double[2];
         findSecondMinMax(matrix, secondMinMax);
 
-        System.out.printf("Второй минимальный элемент: %.4f%n", secondMinMax[0]);
-        System.out.printf("Второй максимальный элемент: %.4f%n", secondMinMax[1]);
-
-        scanner.close();
+        System.out.println("Второй минимальный элемент: " + secondMinMax[0]);
+        System.out.println("Второй максимальный элемент: " + secondMinMax[1]);
     }
 }
+
