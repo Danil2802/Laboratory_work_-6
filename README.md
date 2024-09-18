@@ -981,6 +981,64 @@ const uint8_t rsbox[256] = {
 // Вектор инициализации (IV)
 uint8_t IV[16];
 
+// Умножение на 2 в GF(2^8)
+uint8_t mul2(uint8_t x) {
+    return (x << 1) ^ ((x & 0x80) ? 0x1B : 0x00);
+}
+
+// Умножение на 3 в GF(2^8)
+uint8_t mul3(uint8_t x) {
+    return mul2(x) ^ x;
+}
+
+// Умножение на 9 в GF(2^8)
+uint8_t mul9(uint8_t x) {
+    return mul2(mul2(mul2(x))) ^ x;
+}
+
+// Умножение на 11 в GF(2^8)
+uint8_t mul11(uint8_t x) {
+    return mul2(mul2(mul2(x)) ^ x) ^ x;
+}
+
+// Умножение на 13 в GF(2^8)
+uint8_t mul13(uint8_t x) {
+    return mul2(mul2(mul2(x) ^ x)) ^ x;
+}
+
+// Умножение на 14 в GF(2^8)
+uint8_t mul14(uint8_t x) {
+    return mul2(mul2(mul2(x) ^ x) ^ x);
+}
+
+// MixColumns
+void MixColumns(uint8_t* state) {
+    uint8_t temp[4];
+    for (int i = 0; i < 4; ++i) {
+        temp[0] = mul2(state[i * 4]) ^ mul3(state[i * 4 + 1]) ^ state[i * 4 + 2] ^ state[i * 4 + 3];
+        temp[1] = state[i * 4] ^ mul2(state[i * 4 + 1]) ^ mul3(state[i * 4 + 2]) ^ state[i * 4 + 3];
+        temp[2] = state[i * 4] ^ state[i * 4 + 1] ^ mul2(state[i * 4 + 2]) ^ mul3(state[i * 4 + 3]);
+        temp[3] = mul3(state[i * 4]) ^ state[i * 4 + 1] ^ state[i * 4 + 2] ^ mul2(state[i * 4 + 3]);
+        for (int j = 0; j < 4; ++j) {
+            state[i * 4 + j] = temp[j];
+        }
+    }
+}
+
+// InvMixColumns
+void InvMixColumns(uint8_t* state) {
+    uint8_t temp[4];
+    for (int i = 0; i < 4; ++i) {
+        temp[0] = mul14(state[i * 4]) ^ mul11(state[i * 4 + 1]) ^ mul13(state[i * 4 + 2]) ^ mul9(state[i * 4 + 3]);
+        temp[1] = mul9(state[i * 4]) ^ mul14(state[i * 4 + 1]) ^ mul11(state[i * 4 + 2]) ^ mul13(state[i * 4 + 3]);
+        temp[2] = mul13(state[i * 4]) ^ mul9(state[i * 4 + 1]) ^ mul14(state[i * 4 + 2]) ^ mul11(state[i * 4 + 3]);
+        temp[3] = mul11(state[i * 4]) ^ mul13(state[i * 4 + 1]) ^ mul9(state[i * 4 + 2]) ^ mul14(state[i * 4 + 3]);
+        for (int j = 0; j < 4; ++j) {
+            state[i * 4 + j] = temp[j];
+        }
+    }
+}
+
 // Функция для генерации случайного ключа и IV
 void generateRandomKeyAndIV(uint8_t* key, uint8_t* iv) {
     srand(time(0));
@@ -1107,7 +1165,7 @@ void AES128_Encrypt(uint8_t* input, const uint8_t* roundKeys) {
     for (int round = 1; round <= 9; ++round) {
         SubBytes(state);
         ShiftRows(state);
-        // MixColumns(state); // Пропускаем для CFB
+        MixColumns(state); 
         AddRoundKey(state, roundKeys + round * 16);
     }
 
@@ -1129,7 +1187,7 @@ void AES128_Decrypt(uint8_t* input, const uint8_t* roundKeys) {
         InvShiftRows(state);
         InvSubBytes(state);
         AddRoundKey(state, roundKeys + round * 16);
-        // InvMixColumns(state); // Пропускаем для CFB
+        InvMixColumns(state);
     }
 
     InvShiftRows(state);
@@ -1165,7 +1223,7 @@ void printIV(const uint8_t* iv, const string& label) {
     printHex(iv, 16, label);
 }
 
-// Обновленная функция AES128_CFB_Encrypt с добавленным выводом
+// Функция AES128_CFB_Encrypt с выводом
 void AES128_CFB_Encrypt(uint8_t* plaintext, uint8_t* ciphertext, int length, uint8_t* key) {
     uint8_t roundKeys[176];
     KeyExpansion(key, roundKeys);
@@ -1186,7 +1244,7 @@ void AES128_CFB_Encrypt(uint8_t* plaintext, uint8_t* ciphertext, int length, uin
     }
 }
 
-// Обновленная функция AES128_CFB_Decrypt с добавленным выводом
+// Функция AES128_CFB_Decrypt с выводом
 void AES128_CFB_Decrypt(uint8_t* ciphertext, uint8_t* plaintext, int length, uint8_t* key) {
     uint8_t roundKeys[176];
     KeyExpansion(key, roundKeys);
